@@ -1,0 +1,16 @@
+# build output
+/dist/
+/setu
+/setu.new
+*.exe
+
+# editor / OS
+*.bak
+*.bak.*
+*.stylebak.*
+.DS_Store
+*.swp
+
+# runtime state (never commit operational data)
+*.wal
+*.wal.lock
