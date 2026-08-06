@@ -1,0 +1,7 @@
+{
+  "authenticationMethod": "5G_AKA",
+  "encPermanentKey": "8baf473f2f8fd09487cccbd7097c6862",
+  "encOpcKey": "8e27b6af0e692e750f32667a3b14605d",
+  "authenticationManagementField": "8000",
+  "sequenceNumber": { "sqn": "000000000021" }
+}

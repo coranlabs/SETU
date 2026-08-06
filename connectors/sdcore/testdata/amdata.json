@@ -1,0 +1,5 @@
+{
+  "subscribedUeAmbr": { "uplink": "1 Gbps", "downlink": "2 Gbps" },
+  "gpsis": [ "msisdn-9000000001" ],
+  "nssai": { "defaultSingleNssais": [ { "sst": 1, "sd": "010203" } ] }
+}
