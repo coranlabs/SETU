@@ -1,0 +1,8 @@
+{
+  "_comment": "SD-Core dialect \u2014 every value established on the wire against the live deployment and pinned by characterization tests (docs/02, docs/05). Loaded onto rx2n5.Config via config.sdcore.dialectFile.",
+  "DNN": "ims",
+  "AfAppID": "+g.3gpp.icsi-ref=\"urn%3Aurn-7%3A3gpp-service.ims.icsi.mmtel\"",
+  "NotifURI": "",
+  "SuppFeat": "5",
+  "SponStatus": "SPONSOR_DISABLED"
+}
