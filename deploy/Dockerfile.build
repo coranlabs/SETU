@@ -1,0 +1,10 @@
+# Full source build (offline-capable: stdlib only, GOPROXY=off) — for CI/rebuilds.
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY . .
+ENV GOPROXY=off CGO_ENABLED=0
+RUN go build -trimpath -ldflags="-s -w" -o /setu ./cmd/setu
+FROM alpine:3.20
+COPY --from=build /setu /usr/local/bin/setu
+ENTRYPOINT ["/usr/local/bin/setu"]
+CMD ["-config", "/etc/setu/setu.json", "-apps", "rx,cx,sms"]

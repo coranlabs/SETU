@@ -1,0 +1,16 @@
+[Unit]
+Description=SETU signaling bridge (IMS Rx/Cx/SMS <-> 5G core)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=setu
+ExecStart=/opt/setu/setu -config /opt/setu/setu.json -apps rx,cx,sms
+Restart=always
+RestartSec=2
+LimitNOFILE=65536
+StateDirectory=setu
+
+[Install]
+WantedBy=multi-user.target

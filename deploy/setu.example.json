@@ -1,0 +1,14 @@
+{
+  "plmn": { "mcc": "001", "mnc": "01" },
+  "core": "sdcore",
+  "sdcore": {
+    "pcf": "https://PCF_HOST:29507",
+    "udr": "https://UDR_HOST:29504",
+    "insecure": true,
+    "notifURI": "http://THIS_HOST:7777/notif",
+    "notifListen": ":7777"
+  },
+  "rx":  { "listen": ":3868", "hostIP": "THIS_HOST", "strict": false, "walPath": "/var/lib/setu/rx-grants.wal" },
+  "cx":  { "listen": ":3869", "hostIP": "THIS_HOST", "scscf": "sip:THIS_HOST:6060", "admin": ":9102" },
+  "sms": { "listen": "127.0.0.1:8090", "scscf": "THIS_HOST:6060", "selfIP": "THIS_HOST" }
+}
