@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="920" viewBox="0 0 1000 920" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+<defs>
+<radialGradient id="glow"><stop offset="0%" stop-color="#a371f7" stop-opacity=".55"/>
+ <stop offset="100%" stop-color="#a371f7" stop-opacity="0"/></radialGradient>
+<radialGradient id="cf"><stop offset="0%" stop-color="#221a45"/><stop offset="100%" stop-color="#141026"/></radialGradient>
+<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+ <stop offset="0%" stop-color="#c297ff"/><stop offset="55%" stop-color="#a371f7"/><stop offset="100%" stop-color="#1f6feb"/></linearGradient>
+<filter id="bl" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="16"/></filter>
+</defs>
+<rect width="100%" height="100%" rx="14" fill="#0d1117"/>
+<text x="40" y="46" fill="#e6edf3" font-size="17" font-weight="700" letter-spacing="1.2" text-anchor="start" opacity="1">Inside SETU</text>
+<text x="40" y="66" fill="#7d8590" font-size="10" font-weight="400" letter-spacing="0" text-anchor="start" opacity="1">22 packages · 4 635 lines of code · 2 505 lines of test · zero dependencies beyond the Go standard library</text>
+<text x="960" y="46" fill="#d2a8ff" font-size="11" font-weight="700" letter-spacing="1.5" text-anchor="end" opacity=".9">ports and adapters</text>
+<text x="960" y="64" fill="#525c6b" font-size="9.5" font-weight="400" letter-spacing="0" text-anchor="end" opacity="1">nothing in the middle imports either edge</text>
+<circle cx="500" cy="492" r="150" fill="url(#glow)" filter="url(#bl)"/>
+<g transform="translate(500,492)"><g><path d="M80.0 0.0 L40.0 69.3 L-40.0 69.3 L-80.0 0.0 L-40.0 -69.3 L40.0 -69.3 Z" fill="none" stroke="#a371f7" stroke-width="1.6" opacity="0"><animate attributeName="opacity" values=".5;0;0" keyTimes="0;.55;1" dur="7s" repeatCount="indefinite"/></path><animateTransform attributeName="transform" type="scale" values="1;3.15;3.15" keyTimes="0;.55;1" dur="7s" repeatCount="indefinite"/></g></g>
+<path d="M576.0 353.4 L538.0 419.3 L462.0 419.3 L424.0 353.4 L462.0 287.6 L538.0 287.6 Z" fill="#161b22" stroke="#2b3440" stroke-width="1.3"/>
+<text x="500.0" y="341.43593539448983" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">chassis</text>
+<text x="500.0" y="361.43593539448983" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">config · metrics · sbi</text>
+<text x="500.0" y="377.43593539448983" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">379 loc</text>
+<path d="M456.0 422.7 L418.0 488.5 L342.0 488.5 L304.0 422.7 L342.0 356.9 L418.0 356.9 Z" fill="#101a2b" stroke="#22406b" stroke-width="1.3"/>
+<text x="380.0" y="402.71796769724494" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">connectors/</text>
+<text x="380.0" y="415.71796769724494" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">sdcore</text>
+<text x="380.0" y="430.71796769724494" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">CoreConnector · caps</text>
+<text x="380.0" y="446.71796769724494" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">332 loc</text>
+<path d="M456.0 561.3 L418.0 627.1 L342.0 627.1 L304.0 561.3 L342.0 495.5 L418.0 495.5 Z" fill="#101a2b" stroke="#22406b" stroke-width="1.3"/>
+<text x="380.0" y="541.282032302755" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">sdcore/</text>
+<text x="380.0" y="554.282032302755" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">rx2n5</text>
+<text x="380.0" y="569.282032302755" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">Rx AVPs → N5 JSON</text>
+<text x="380.0" y="585.282032302755" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">535 loc</text>
+<path d="M576.0 630.6 L538.0 696.4 L462.0 696.4 L424.0 630.6 L462.0 564.7 L538.0 564.7 Z" fill="#191333" stroke="#3d2c68" stroke-width="1.3"/>
+<text x="500.0" y="618.5640646055101" fill="#d2a8ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">fabric</text>
+<text x="500.0" y="638.5640646055101" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">grants · dialects</text>
+<text x="500.0" y="654.5640646055101" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">151 loc</text>
+<path d="M696.0 561.3 L658.0 627.1 L582.0 627.1 L544.0 561.3 L582.0 495.5 L658.0 495.5 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.3"/>
+<text x="620.0" y="541.282032302755" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">adapters/</text>
+<text x="620.0" y="554.282032302755" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">cx</text>
+<text x="620.0" y="569.282032302755" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">UAR MAR SAR LIR</text>
+<text x="620.0" y="585.282032302755" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">270 loc</text>
+<path d="M696.0 422.7 L658.0 488.5 L582.0 488.5 L544.0 422.7 L582.0 356.9 L658.0 356.9 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.3"/>
+<text x="620.0" y="402.71796769724494" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">adapters/</text>
+<text x="620.0" y="415.71796769724494" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">rx</text>
+<text x="620.0" y="430.71796769724494" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">AAR · STR → grants</text>
+<text x="620.0" y="446.71796769724494" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">210 loc</text>
+<path d="M576.0 214.9 L538.0 280.7 L462.0 280.7 L424.0 214.9 L462.0 149.1 L538.0 149.1 Z" fill="#161b22" stroke="#2b3440" stroke-width="1.3"/>
+<text x="500.0" y="202.87187078897966" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">cmd/setu</text>
+<text x="500.0" y="222.87187078897966" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">wire it up · drain</text>
+<text x="500.0" y="238.87187078897966" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">156 loc</text>
+<path d="M456.0 284.2 L418.0 350.0 L342.0 350.0 L304.0 284.2 L342.0 218.3 L418.0 218.3 Z" fill="#101a2b" stroke="#22406b" stroke-width="1.3"/>
+<text x="380.0" y="264.1539030917347" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">crypto/</text>
+<text x="380.0" y="277.1539030917347" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">milenage</text>
+<text x="380.0" y="292.1539030917347" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">f1–f5 · TS 35.206</text>
+<text x="380.0" y="308.1539030917347" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">87 loc</text>
+<path d="M336.0 353.4 L298.0 419.3 L222.0 419.3 L184.0 353.4 L222.0 287.6 L298.0 287.6 Z" fill="#101a2b" stroke="#22406b" stroke-width="1.3"/>
+<text x="260.0" y="333.43593539448983" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">sdcore/</text>
+<text x="260.0" y="346.43593539448983" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">udr</text>
+<text x="260.0" y="361.43593539448983" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">Nudr subscriber data</text>
+<text x="260.0" y="377.43593539448983" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">243 loc</text>
+<path d="M336.0 492.0 L298.0 557.8 L222.0 557.8 L184.0 492.0 L222.0 426.2 L298.0 426.2 Z" fill="#101a2b" stroke="#22406b" stroke-width="1.3"/>
+<text x="260.0" y="480.0" fill="#58a6ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">conformance</text>
+<text x="260.0" y="500.0" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">refpcf · qosconv</text>
+<text x="260.0" y="516.0" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">309 loc</text>
+<path d="M336.0 630.6 L298.0 696.4 L222.0 696.4 L184.0 630.6 L222.0 564.7 L298.0 564.7 Z" fill="#161b22" stroke="#2b3440" stroke-width="1.3"/>
+<text x="260.0" y="618.5640646055101" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">uilog</text>
+<text x="260.0" y="638.5640646055101" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">one line per event</text>
+<text x="260.0" y="654.5640646055101" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">50 loc</text>
+<path d="M456.0 699.8 L418.0 765.7 L342.0 765.7 L304.0 699.8 L342.0 634.0 L418.0 634.0 Z" fill="#191333" stroke="#3d2c68" stroke-width="1.3"/>
+<text x="380.0" y="679.8460969082653" fill="#d2a8ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">fabric/</text>
+<text x="380.0" y="692.8460969082653" fill="#d2a8ff" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">sessionstore</text>
+<text x="380.0" y="707.8460969082653" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">crash-safe journal</text>
+<text x="380.0" y="723.8460969082653" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">248 loc</text>
+<path d="M576.0 769.1 L538.0 834.9 L462.0 834.9 L424.0 769.1 L462.0 703.3 L538.0 703.3 Z" fill="#161b22" stroke="#2b3440" stroke-width="1.3"/>
+<text x="500.0" y="749.1281292110203" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">wire/</text>
+<text x="500.0" y="762.1281292110203" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">diameter</text>
+<text x="500.0" y="777.1281292110203" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">AVP codec · fuzzed</text>
+<text x="500.0" y="793.1281292110203" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">434 loc</text>
+<path d="M696.0 699.8 L658.0 765.7 L582.0 765.7 L544.0 699.8 L582.0 634.0 L658.0 634.0 Z" fill="#161b22" stroke="#2b3440" stroke-width="1.3"/>
+<text x="620.0" y="679.8460969082653" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">wire/</text>
+<text x="620.0" y="692.8460969082653" fill="#7d8590" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">dpeer</text>
+<text x="620.0" y="707.8460969082653" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">CER/CEA · DWR · DWA</text>
+<text x="620.0" y="723.8460969082653" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">384 loc</text>
+<path d="M816.0 630.6 L778.0 696.4 L702.0 696.4 L664.0 630.6 L702.0 564.7 L778.0 564.7 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.3"/>
+<text x="740.0" y="610.5640646055101" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">sms/</text>
+<text x="740.0" y="623.5640646055101" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">tpdu</text>
+<text x="740.0" y="638.5640646055101" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">GSM-7 · UCS-2</text>
+<text x="740.0" y="654.5640646055101" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">298 loc</text>
+<path d="M816.0 492.0 L778.0 557.8 L702.0 557.8 L664.0 492.0 L702.0 426.2 L778.0 426.2 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.3"/>
+<text x="740.0" y="472.0" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">ims/</text>
+<text x="740.0" y="485.0" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">imssub</text>
+<text x="740.0" y="500.0" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">TS 29.228 XML · iFC</text>
+<text x="740.0" y="516.0" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">169 loc</text>
+<path d="M816.0 353.4 L778.0 419.3 L702.0 419.3 L664.0 353.4 L702.0 287.6 L778.0 287.6 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.3"/>
+<text x="740.0" y="333.43593539448983" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">ims/</text>
+<text x="740.0" y="346.43593539448983" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">ident</text>
+<text x="740.0" y="361.43593539448983" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">IMPI · IMPU · TS 23.003</text>
+<text x="740.0" y="377.43593539448983" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">107 loc</text>
+<path d="M696.0 284.2 L658.0 350.0 L582.0 350.0 L544.0 284.2 L582.0 218.3 L658.0 218.3 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.3"/>
+<text x="620.0" y="264.1539030917347" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">adapters/</text>
+<text x="620.0" y="277.1539030917347" fill="#3fb950" font-size="9.5" font-weight="700" letter-spacing="0" text-anchor="middle" opacity="1">sms</text>
+<text x="620.0" y="292.1539030917347" fill="#adbac7" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity=".85">MO → MT · reports</text>
+<text x="620.0" y="308.1539030917347" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">124 loc</text>
+<path d="M576.0 492.0 L538.0 557.8 L462.0 557.8 L424.0 492.0 L462.0 426.2 L538.0 426.2 Z" fill="url(#cf)" stroke="url(#edge)" stroke-width="2"/>
+<text x="500" y="470" fill="#d2a8ff" font-size="12" font-weight="700" letter-spacing="1" text-anchor="middle" opacity="1">api/v1</text>
+<line x1="470" y1="479" x2="530" y2="479" stroke="#3a3060"/>
+<text x="500" y="493" fill="#e6edf3" font-size="9" font-weight="700" letter-spacing="1.6" text-anchor="middle" opacity="1">CANONICAL</text>
+<text x="500" y="505" fill="#e6edf3" font-size="9" font-weight="700" letter-spacing="1.6" text-anchor="middle" opacity="1">MODEL</text>
+<text x="500" y="520" fill="#525c6b" font-size="7.5" font-weight="400" letter-spacing="0" text-anchor="middle" opacity="1">149 loc</text>
+<text x="0" y="0" fill="#58a6ff" font-size="10" font-weight="700" letter-spacing="3.5" text-anchor="middle" opacity=".75" transform="translate(64,492) rotate(-90)">CORE-FACING</text>
+<text x="0" y="0" fill="#3fb950" font-size="10" font-weight="700" letter-spacing="3.5" text-anchor="middle" opacity=".75" transform="translate(940,492) rotate(90)">SYSTEM-FACING</text>
+<text x="500" y="122" fill="#7d8590" font-size="10" font-weight="700" letter-spacing="3.5" text-anchor="middle" opacity=".7">PROCESS</text>
+<text x="500" y="872" fill="#7d8590" font-size="10" font-weight="700" letter-spacing="3.5" text-anchor="middle" opacity=".7">WIRE  ·  STATE  ·  TOOLING</text>
+<path d="M51.0 882.0 L47.5 888.1 L40.5 888.1 L37.0 882.0 L40.5 875.9 L47.5 875.9 Z" fill="#101a2b" stroke="#22406b" stroke-width="1.2"/>
+<text x="58" y="886" fill="#adbac7" font-size="9" font-weight="400" letter-spacing="0" text-anchor="start" opacity="1">connectors — speak to a 5G core</text>
+<path d="M271.5 882.0 L268.0 888.1 L261.0 888.1 L257.5 882.0 L261.0 875.9 L268.0 875.9 Z" fill="#0f1f16" stroke="#1e4a2c" stroke-width="1.2"/>
+<text x="278.5" y="886" fill="#adbac7" font-size="9" font-weight="400" letter-spacing="0" text-anchor="start" opacity="1">adapters — speak to an external system</text>
+<path d="M530.5 882.0 L527.0 888.1 L520.0 888.1 L516.5 882.0 L520.0 875.9 L527.0 875.9 Z" fill="#191333" stroke="#3d2c68" stroke-width="1.2"/>
+<text x="537.5" y="886" fill="#adbac7" font-size="9" font-weight="400" letter-spacing="0" text-anchor="start" opacity="1">the shared middle — model, grants, journal</text>
+<path d="M811.5 882.0 L808.0 888.1 L801.0 888.1 L797.5 882.0 L801.0 875.9 L808.0 875.9 Z" fill="#161b22" stroke="#2b3440" stroke-width="1.2"/>
+<text x="818.5" y="886" fill="#adbac7" font-size="9" font-weight="400" letter-spacing="0" text-anchor="start" opacity="1">wire, process and tooling</text>
+</svg>
