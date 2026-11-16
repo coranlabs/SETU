@@ -109,9 +109,6 @@ func TestMOProducesDeliverThenSubmitReport(t *testing.T) {
 	if out.Err != "" {
 		t.Fatalf("unexpected error: %s", out.Err)
 	}
-	if out.Recipient != "1001001488" || out.Text != "Hi there" {
-		t.Fatalf("decoded %q/%q", out.Recipient, out.Text)
-	}
 
 	mt := scscf.next(t)
 	if !strings.HasPrefix(mt, "MESSAGE sip:1001001488@ims.mnc001.mcc001.3gppnetwork.org SIP/2.0") {
@@ -127,9 +124,8 @@ func TestMOProducesDeliverThenSubmitReport(t *testing.T) {
 			t.Errorf("MT message missing %q", want)
 		}
 	}
-	body := mt[strings.Index(mt, "\r\n\r\n")+4:]
-	if hex.EncodeToString([]byte(body)) != out.DeliverHex {
-		t.Error("MT body does not match the reported deliverHex")
+	if got := deliveredText(t, []byte(mt[strings.Index(mt, "\r\n\r\n")+4:])); got != "Hi there" {
+		t.Errorf("MT body carries %q, want %q", got, "Hi there")
 	}
 
 	ack := scscf.next(t)
@@ -155,15 +151,12 @@ func TestMOEncodings(t *testing.T) {
 			if out.Err != "" {
 				t.Fatalf("error: %s", out.Err)
 			}
-			if out.Text != tc.text {
-				t.Fatalf("decoded %q, want %q", out.Text, tc.text)
+			mt := scscf.next(t)
+			raw := []byte(mt[strings.Index(mt, "\r\n\r\n")+4:])
+			if got := deliveredText(t, raw); got != tc.text {
+				t.Fatalf("delivered %q, want %q", got, tc.text)
 			}
-			raw, err := hex.DecodeString(out.DeliverHex)
-			if err != nil {
-				t.Fatal(err)
-			}
-			// RP-DATA: 01 00 | RP-OA(3) | RP-DA(1) | len | TPDU
-			deliver := raw[7:]
+			deliver := tpduOf(raw)
 			wantDCS := byte(0x00)
 			if !tpdu.IsGSM7(tc.text) {
 				wantDCS = 0x08
@@ -196,13 +189,31 @@ func TestMOBadInput(t *testing.T) {
 func TestMOUnreachableSCSCF(t *testing.T) {
 	a := newAdapter("127.0.0.1:1") // nothing listens here
 	out := post(t, a, "1001001489", submitRP(t, "1001001488", "hi", 2))
-	if out.Recipient != "1001001488" {
-		t.Fatalf("decode should still succeed, got %+v", out)
+	// /mo answers before delivery starts (the sender learns of a failed delivery from its RP-ERROR or the missing
+	// RP-ACK), so even with a dead S-CSCF the answer comes back at once and carries no error.
+	if out.Err != "" {
+		t.Fatalf("err = %q, want none: delivery is asynchronous", out.Err)
 	}
-	if out.Err == "" {
-		t.Skip("host accepted the datagram; delivery failure not observable here")
+}
+
+// tpduOf is the TPDU inside an RP-DATA n->ms: type, reference, RP-OA, RP-DA, then its length (TS 24.011 7.3.1.1).
+func tpduOf(rp []byte) []byte {
+	i := 2
+	i += 1 + int(rp[i]) // RP-OA
+	i += 1 + int(rp[i]) // RP-DA
+	return rp[i+1:]
+}
+
+// deliveredText is the text of the SMS-DELIVER inside an RP-DATA n->ms (TS 23.040 9.2.2.1).
+func deliveredText(t *testing.T, rp []byte) string {
+	t.Helper()
+	d := tpduOf(rp)
+	oa := (int(d[1]) + 1) / 2
+	dcs := d[3+oa+1]
+	udl := int(d[3+oa+2+7])
+	ud := d[3+oa+2+7+1:]
+	if dcs&0x0c == 0x08 {
+		return tpdu.DecodeUCS2(ud[:udl])
 	}
-	if !strings.HasPrefix(out.Err, "mt:") {
-		t.Fatalf("err = %q, want an mt: prefix", out.Err)
-	}
+	return tpdu.GSM7Unpack(ud, udl)
 }
