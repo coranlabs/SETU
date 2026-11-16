@@ -10,6 +10,7 @@ package uilog
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -32,11 +33,11 @@ const (
 
 func init() { log.SetFlags(0) } // we render our own timestamp
 
-// Event prints one styled line:  HH:MM:SS  <icon> TAG      detail...
-func Event(color, icon, tag, format string, args ...any) {
+// Event prints one styled line:  HH:MM:SS  TAG      detail...
+func Event(color, tag, format string, args ...any) {
 	ts := time.Now().Format("15:04:05")
 	detail := fmt.Sprintf(format, args...)
-	log.Printf("%s%s%s  %s %s%s%-8s%s %s", dim, ts, reset, icon, bold, color, tag, reset, detail)
+	log.Printf("%s%s%s  %s%s%-8s%s %s", dim, ts, reset, bold, color, tag, reset, detail)
 }
 
 // Short reduces a core session reference (often a full app-session URL) to its
@@ -44,7 +45,25 @@ func Event(color, icon, tag, format string, args ...any) {
 func Short[T ~string](s T) string {
 	ref := string(s)
 	if i := strings.LastIndexByte(ref, '/'); i >= 0 && i+1 < len(ref) {
-		return ref[i+1:]
+		ref = ref[i+1:]
 	}
-	return ref
+	// the PCF names an app-session after the subscriber (imsi-001010100007488-1): its long digit runs are masked
+	// like any identity (11-11: setu's CALL lines printed full IMSIs)
+	return longDigits.ReplaceAllStringFunc(ref, Mask)
+}
+
+// longDigits is a run of digits long enough to be an IMSI or MSISDN.
+var longDigits = regexp.MustCompile(`[0-9]{6,}`)
+
+// Mask hides the string(e.g. Subscriber etc.) which is given to it
+func Mask(s string) string {
+	const keep = 4 // the last characters shown: enough to tell test SIMs apart, too few to identify a person
+	r := []rune(s)
+	if len(r) == 0 {
+		return "-"
+	}
+	if len(r) <= keep {
+		return "***"
+	}
+	return "***" + string(r[len(r)-keep:])
 }

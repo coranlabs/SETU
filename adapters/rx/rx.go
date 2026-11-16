@@ -47,31 +47,31 @@ func (a *Adapter) Handle(_ *dpeer.Conn, req diameter.Message) (diameter.Message,
 	switch req.Code {
 	case diameter.CmdAA:
 		ctx, cancel := context.WithTimeout(context.Background(), a.timeout())
-		ref, err := a.Core.Policy().Create(ctx, &api.MediaGrant{ID: sid, UE: ueKey(req), Raw: req})
+		ref, err := a.grant(ctx, sid, &api.MediaGrant{ID: sid, UE: ueKey(req), Raw: req})
 		cancel()
 		if err != nil {
-			uilog.Event(uilog.Red, "⛔", "CALL-FAIL", "ue %s  dedicated bearer NOT installed: %v", ueKey(req).IPv4, err)
+			uilog.Event(uilog.Red, "CALL-FAIL", "ue %s  dedicated bearer NOT installed: %v", ueKey(req).IPv4, err)
 			if a.Strict {
 				result = strictAnswer(err)
 			} // otherwise fall through and answer 2001
 		} else {
 			if err := a.Grants.Bind(sid, ref); err != nil {
-				uilog.Event(uilog.Orange, "⚠", "WAL-WARN", "grant persist failed: %v", err)
+				uilog.Event(uilog.Orange, "WAL-WARN", "grant persist failed: %v", err)
 			}
 			ue := ueKey(req).IPv4
 			sess := uilog.Short(ref)
 			mts := mediaTypes(req)
 			if len(mts) == 0 {
-				uilog.Event(uilog.Green, "📶", "CALL-UP", "ue %-15s  dedicated GBR bearer installed  · sess %s", ue, sess)
+				uilog.Event(uilog.Green, "CALL-UP", "ue %-15s  dedicated GBR bearer installed  · sess %s", ue, sess)
 			}
 			for _, mt := range mts {
 				switch mt {
 				case "AUDIO":
-					uilog.Event(uilog.Green, "🎧", "AUDIO", "ue %-15s  5QI-1 GBR voice  ✓ bearer UP  · sess %s", ue, sess)
+					uilog.Event(uilog.Green, "AUDIO", "ue %-15s  5QI-1 GBR voice  ✓ bearer UP  · sess %s", ue, sess)
 				case "VIDEO":
-					uilog.Event(uilog.Cyan, "🎥", "VIDEO", "ue %-15s  5QI-2 GBR video  ✓ bearer UP  · sess %s", ue, sess)
+					uilog.Event(uilog.Cyan, "VIDEO", "ue %-15s  5QI-2 GBR video  ✓ bearer UP  · sess %s", ue, sess)
 				default:
-					uilog.Event(uilog.Blue, "📡", "MEDIA", "ue %-15s  %s bearer UP  · sess %s", ue, mt, sess)
+					uilog.Event(uilog.Blue, "MEDIA", "ue %-15s  %s bearer UP  · sess %s", ue, mt, sess)
 				}
 			}
 		}
@@ -79,9 +79,9 @@ func (a *Adapter) Handle(_ *dpeer.Conn, req diameter.Message) (diameter.Message,
 		if ref, ok := a.Grants.Take(sid); ok {
 			ctx, cancel := context.WithTimeout(context.Background(), a.timeout())
 			if err := a.Core.Policy().Delete(ctx, ref); err != nil {
-				uilog.Event(uilog.Red, "⛔", "END-FAIL", "sess %s  release failed: %v", uilog.Short(ref), err)
+				uilog.Event(uilog.Red, "END-FAIL", "sess %s  release failed: %v", uilog.Short(ref), err)
 			} else {
-				uilog.Event(uilog.Orange, "📴", "CALL-END", "sess %-22s  dedicated bearer released", uilog.Short(ref))
+				uilog.Event(uilog.Orange, "CALL-END", "sess %-22s  dedicated bearer released", uilog.Short(ref))
 			}
 			cancel()
 		}
@@ -96,6 +96,30 @@ func (a *Adapter) Handle(_ *dpeer.Conn, req diameter.Message) (diameter.Message,
 	avps = append(avps, result...)
 	ans.AVPs = avps
 	return ans, nil
+}
+
+// grant installs the media of an AAR. A first AAR for an Rx session creates its policy; a later one for the same
+// session (the call answered, re-negotiated) updates that policy (TS 29.214 4.4.2) — a second policy beside the first
+// tore the voice bearer down and leaked into the next call. A core that cannot update has the old policy released
+// first and a new one created, so nothing is left behind.
+func (a *Adapter) grant(ctx context.Context, sid string, g *api.MediaGrant) (api.CoreRef, error) {
+	old, ok := a.Grants.Lookup(sid)
+	if !ok {
+		return a.Core.Policy().Create(ctx, g)
+	}
+	err := a.Core.Policy().Update(ctx, old, g)
+	if err == nil {
+		return old, nil
+	}
+	if !errors.Is(err, api.ErrUnsupported) && !errors.Is(err, api.ErrNoSession) {
+		return "", err
+	}
+	if _, held := a.Grants.Take(sid); held {
+		if derr := a.Core.Policy().Delete(ctx, old); derr != nil {
+			uilog.Event(uilog.Orange, "END-WARN", "sess %s  old grant not released before re-creating: %v", uilog.Short(old), derr)
+		}
+	}
+	return a.Core.Policy().Create(ctx, g)
 }
 
 // strictAnswer maps connector errors onto TS 29.214 result codes.
@@ -174,7 +198,7 @@ func (a *Adapter) logAAR(sid string, req diameter.Message) {
 	for _, sub := range diameter.FindAll(req.AVPs, 443, 0) {
 		if kids, e := sub.SubAVPs(); e == nil {
 			if d, e2 := diameter.Find(kids, 444, 0); e2 == nil {
-				subs = append(subs, d.StrVal())
+				subs = append(subs, uilog.Mask(d.StrVal())) // a subscriber identity: masked in the log
 			}
 		}
 	}
