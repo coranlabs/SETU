@@ -26,6 +26,7 @@ import (
 	"github.com/coranlabs/SETU/connectors/sdcore/rx2n5"
 	"github.com/coranlabs/SETU/fabric"
 	"github.com/coranlabs/SETU/ims/ident"
+	"github.com/coranlabs/SETU/ims/imssub"
 )
 
 const version = "0.1.0"
@@ -83,10 +84,12 @@ func main() {
 			a := &cx.Adapter{
 				Listen: cfg.Cx.Listen, OriginHost: cfg.Cx.OriginHost,
 				OriginRealm: cfg.Cx.OriginRealm, HostIP: cfg.Cx.HostIP,
-				SCSCFName: cfg.Cx.SCSCF,
-				PLMN:      ident.PLMN{MCC: cfg.PLMN.MCC, MNC: cfg.PLMN.MNC},
-				Core:      core,
+				SCSCFName:  cfg.Cx.SCSCF,
+				PLMN:       ident.PLMN{MCC: cfg.PLMN.MCC, MNC: cfg.PLMN.MNC},
+				Core:       core,
+				AppServers: appServerTriggers(cfg.Cx.AppServers),
 			}
+			log.Printf("setu: cx profiles carry %d application-server rule(s)", len(a.AppServers))
 			reg := a.InitMetrics()
 			if cfg.Cx.Admin != "" {
 				go func() {
@@ -153,4 +156,16 @@ type unknownCore struct{ name string }
 
 func (e *unknownCore) Error() string {
 	return "unknown core connector " + e.name + " (registered: sdcore)"
+}
+
+// writes into every profile as iFC.
+func appServerTriggers(list []config.AppServer) []imssub.AppServerTrigger {
+	out := make([]imssub.AppServerTrigger, 0, len(list))
+	for _, a := range list {
+		out = append(out, imssub.AppServerTrigger{
+			ServerName: a.ServerName, Method: a.Method, RequestURI: a.RequestURI, SessionCase: a.SessionCase,
+			DefaultHandling: a.DefaultHandling, Priority: a.Priority,
+		})
+	}
+	return out
 }

@@ -10,6 +10,7 @@ import (
 
 	api "github.com/coranlabs/SETU/api/v1"
 	"github.com/coranlabs/SETU/ims/ident"
+	"github.com/coranlabs/SETU/ims/imssub"
 	"github.com/coranlabs/SETU/wire/diameter"
 )
 
@@ -124,4 +125,37 @@ func mustFind(t *testing.T, avps []diameter.AVP, code, vendor uint32) diameter.A
 		t.Fatalf("AVP %d (vendor %d) not found", code, vendor)
 	}
 	return a
+}
+
+// With cx.appServers set, every SAA profile carries them as iFC; without, it carries none (the plain VoNR profile).
+func TestSARCarriesTheAppServerRules(t *testing.T) {
+	orig := 0
+	sar := diameter.Message{Flags: diameter.CmdRequest, Code: diameter.CmdSAR, AppID: diameter.AppCx,
+		AVPs: []diameter.AVP{diameter.Str(diameter.AVPUserName, 0, true, "001010100007488@x")}}
+	profile := func(rules []imssub.AppServerTrigger) []byte {
+		a := &Adapter{OriginHost: "hss.ims.mnc001.mcc001.3gppnetwork.org", OriginRealm: "ims.mnc001.mcc001.3gppnetwork.org",
+			SCSCFName: "sip:192.0.2.10:6060", PLMN: ident.PLMN{MCC: "001", MNC: "01"}, Core: &fakeCore{}, AppServers: rules}
+		ans, err := a.Handle(nil, sar)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mustFind(t, ans.AVPs, diameter.AVPUserData, diameter.Vendor3GPP).Data
+	}
+
+	with := profile([]imssub.AppServerTrigger{
+		{ServerName: "sip:192.0.2.20:5070", Method: "REGISTER", SessionCase: &orig, Priority: 10},
+		{ServerName: "sip:192.0.2.20:5070", RequestURI: "^sip:(mcptt|mcdata|mcvideo)@", SessionCase: &orig, Priority: 20, DefaultHandling: 1},
+	})
+	if n := bytes.Count(with, []byte("<InitialFilterCriteria>")); n != 2 {
+		t.Fatalf("%d iFC, want 2:\n%s", n, with)
+	}
+	for _, want := range []string{"<Method>REGISTER</Method>", "<RequestURI>^sip:(mcptt|mcdata|mcvideo)@</RequestURI>",
+		"<SessionCase>0</SessionCase>", "<ServerName>sip:192.0.2.20:5070</ServerName>"} {
+		if !bytes.Contains(with, []byte(want)) {
+			t.Fatalf("profile missing %q:\n%s", want, with)
+		}
+	}
+	if without := profile(nil); bytes.Contains(without, []byte("<InitialFilterCriteria")) {
+		t.Fatalf("no rules configured, yet an iFC:\n%s", without)
+	}
 }

@@ -6,6 +6,7 @@ package rx
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	api "github.com/coranlabs/SETU/api/v1"
@@ -20,6 +21,9 @@ type fakeCore struct {
 	createErr error
 	created   []string // grant IDs seen
 	deleted   []api.CoreRef
+	canUpdate bool          // the core updates a grant in place (N5 PATCH)
+	updated   []api.CoreRef // grants updated
+	order     []string      // "create", "update", "delete" as they happened
 }
 
 func (f *fakeCore) Name() string           { return "fake" }
@@ -35,13 +39,20 @@ func (f *fakeCore) Create(_ context.Context, g *api.MediaGrant) (api.CoreRef, er
 	if f.createErr != nil {
 		return "", f.createErr
 	}
+	f.order = append(f.order, "create")
 	f.created = append(f.created, g.ID)
 	return api.CoreRef("https://pcf:29507/npcf-policyauthorization/v1/app-sessions/" + g.ID), nil
 }
-func (f *fakeCore) Update(context.Context, api.CoreRef, *api.MediaGrant) error {
-	return api.ErrUnsupported
+func (f *fakeCore) Update(_ context.Context, ref api.CoreRef, _ *api.MediaGrant) error {
+	if !f.canUpdate {
+		return api.ErrUnsupported
+	}
+	f.order = append(f.order, "update")
+	f.updated = append(f.updated, ref)
+	return nil
 }
 func (f *fakeCore) Delete(_ context.Context, ref api.CoreRef) error {
+	f.order = append(f.order, "delete")
 	f.deleted = append(f.deleted, ref)
 	return nil
 }
@@ -165,5 +176,40 @@ func TestAARStrictTaxonomy(t *testing.T) {
 		if ec := experimentalCode(t, ans); ec != tc.wantExp {
 			t.Errorf("%v: Experimental-Result-Code = %d, want %d", tc.err, ec, tc.wantExp)
 		}
+	}
+}
+
+// Live 2026-11-11: the P-CSCF sends a second AAR for the same Rx session when the call is answered. setu created a
+// second app-session for it: the voice bearer was torn down 0.5 s after it came up, the caller hung up 3 s after the
+// answer, and the first session's rules leaked into the next call. The second AAR updates the first grant.
+func TestASecondAARForTheSameSessionUpdatesItsGrant(t *testing.T) {
+	core := &fakeCore{canUpdate: true}
+	a := newAdapter(t, core, true)
+	for i := 0; i < 2; i++ { // the call offered, then answered
+		if ans, _ := a.Handle(nil, rx2n5.BuildAudioAAR("sess-call", "10.45.0.2", "9000000001", 5000, 5001)); resultCode(t, ans) != 2001 {
+			t.Fatalf("AAR %d answered %d", i+1, resultCode(t, ans))
+		}
+	}
+	if len(core.created) != 1 || len(core.updated) != 1 || a.Grants.Len() != 1 {
+		t.Fatalf("created %v, updated %v, grants %d: want one grant, created once and updated once",
+			core.created, core.updated, a.Grants.Len())
+	}
+	a.Handle(nil, rx2n5.BuildSTR("sess-call"))
+	if len(core.deleted) != 1 || a.Grants.Len() != 0 {
+		t.Fatalf("after STR: deleted %v, grants %d", core.deleted, a.Grants.Len())
+	}
+}
+
+// A core that cannot update has the old grant released before the new one is made: nothing is left behind.
+func TestACoreThatCannotUpdateReleasesTheOldGrantFirst(t *testing.T) {
+	core := &fakeCore{}
+	a := newAdapter(t, core, true)
+	a.Handle(nil, rx2n5.BuildAudioAAR("sess-call", "10.45.0.2", "9000000001", 5000, 5001))
+	a.Handle(nil, rx2n5.BuildAudioAAR("sess-call", "10.45.0.2", "9000000001", 5002, 5003))
+	if got := strings.Join(core.order, ","); got != "create,delete,create" {
+		t.Fatalf("core saw %s, want create,delete,create", got)
+	}
+	if a.Grants.Len() != 1 {
+		t.Fatalf("grants = %d, want 1", a.Grants.Len())
 	}
 }

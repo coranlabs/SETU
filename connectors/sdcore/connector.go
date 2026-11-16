@@ -74,7 +74,7 @@ func (c *Connector) Name() string { return "sdcore" }
 
 func (c *Connector) Capabilities() api.Caps {
 	return api.Caps{
-		PolicyUpdate:  false, // this PCF has no N5 PATCH
+		PolicyUpdate:  true, // N5 PATCH (TossiCore's PCF); a PCF without it answers 404/405/501 -> ErrUnsupported
 		PolicyRead:    false,
 		Notifications: true,
 		AuthVector:    api.AuthLocalMilenage,
@@ -122,19 +122,52 @@ func (p *policy) Create(ctx context.Context, g *api.MediaGrant) (api.CoreRef, er
 	return api.CoreRef(resp.Header.Get("Location")), nil
 }
 
+// Update changes an app-session's media (Npcf_PolicyAuthorization_Update, TS 29.514 4.2.3): the P-CSCF sends a
+// second AAR for the same Rx session when the call's SDP changes (answer, UPDATE). Creating a second app-session for
+// it instead left two sets of PCC rules on the PDU session: the voice bearer was removed half a second after it was
+// set up, the phone hung up, and the first session's rules leaked into the next call (live 2026-11-11).
+// A PCF without PATCH (404 for the route, 405, 501) gives ErrUnsupported: the caller re-creates the grant.
 func (p *policy) Update(ctx context.Context, ref api.CoreRef, g *api.MediaGrant) error {
-	return api.ErrUnsupported
+	asc, err := rx2n5.Translate(g.Raw, p.cfg.Dialect, resolveGPSI)
+	if err != nil {
+		return fmt.Errorf("%w: translate: %v", api.ErrRejected, err)
+	}
+	body, _ := json.Marshal(map[string]any{"medComponents": asc.AscReqData.MedComponents})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, p.rebase(string(ref)), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/merge-patch+json")
+	resp, err := p.hc.Do(req)
+	if err != nil {
+		return fmt.Errorf("%w: %v", api.ErrUnavailable, err)
+	}
+	defer resp.Body.Close()
+	rb, _ := io.ReadAll(resp.Body)
+	switch {
+	case resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent:
+		return nil
+	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusMethodNotAllowed ||
+		resp.StatusCode == http.StatusNotImplemented:
+		return fmt.Errorf("%w: PCF app-session PATCH HTTP %d: %s", api.ErrUnsupported, resp.StatusCode, string(rb))
+	}
+	return fmt.Errorf("%w: PCF app-session PATCH HTTP %d: %s", api.ErrRejected, resp.StatusCode, string(rb))
+}
+
+// rebase puts an app-session's Location onto PCFBase: the PCF answers with its k8s-internal name
+// (https://pcf:29507/...), unreachable from setu's host.
+func (p *policy) rebase(loc string) string {
+	if i := strings.Index(loc, "/npcf-policyauthorization"); i >= 0 {
+		return p.cfg.PCFBase + loc[i:]
+	}
+	return loc
 }
 
 // Delete removes the app-session. The PCF returns a Location built from its own
 // service name, which the bridge host usually cannot resolve, so the path is
 // re-attached to PCFBase before use.
 func (p *policy) Delete(ctx context.Context, ref api.CoreRef) error {
-	loc := string(ref)
-	delURL := loc + "/delete"
-	if i := strings.Index(loc, "/npcf-policyauthorization"); i >= 0 {
-		delURL = p.cfg.PCFBase + loc[i:] + "/delete"
-	}
+	delURL := p.rebase(string(ref)) + "/delete"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, delURL, nil)
 	if err != nil {
 		return err
