@@ -72,17 +72,17 @@ func (a *Adapter) HandleMO(w http.ResponseWriter, r *http.Request) {
 		deliver := tpdu.EncodeDeliver(fromNum, mo.Text, a.now())
 		out.DeliverHex = hex.EncodeToString(deliver)
 		if e := a.sendMT(fromNum, mo.Recipient, deliver); e != nil {
-			uilog.Event(uilog.Red, "⛔", "SMS-FAIL", "%s → %s: %v", in.From, out.Recipient, e)
+			uilog.Event(uilog.Red, "SMS-FAIL", "%s → %s: %v", uilog.Mask(in.From), uilog.Mask(out.Recipient), e)
 			out.Err = "mt: " + e.Error()
 		} else {
-			uilog.Event(uilog.Yellow, "💬", "SMS", "%s → %s  %q  ✓ delivered", in.From, out.Recipient, out.Text)
+			uilog.Event(uilog.Yellow, "SMS", "%s → %s  ✓ delivered", uilog.Mask(in.From), uilog.Mask(out.Recipient))
 		}
 		// Submit report back to the sender so the handset shows "sent". Sent
 		// regardless of the MT result; RP-ERROR handling is not implemented.
 		if e := a.sendMT(mo.Recipient, fromNum, tpdu.BuildRPAck(mo.RPRef)); e != nil {
-			uilog.Event(uilog.Red, "⛔", "ACK-FAIL", "to %s: %v", fromNum, e)
+			uilog.Event(uilog.Red, "ACK-FAIL", "to %s: %v", uilog.Mask(fromNum), e)
 		} else {
-			uilog.Event(uilog.Yellow, "✅", "SMS-ACK", "to %s  submit-report sent  · ref %d", fromNum, mo.RPRef)
+			uilog.Event(uilog.Yellow, "SMS-ACK", "to %s  submit-report sent  · ref %d", uilog.Mask(fromNum), mo.RPRef)
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
