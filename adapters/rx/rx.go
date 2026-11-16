@@ -47,7 +47,7 @@ func (a *Adapter) Handle(_ *dpeer.Conn, req diameter.Message) (diameter.Message,
 	switch req.Code {
 	case diameter.CmdAA:
 		ctx, cancel := context.WithTimeout(context.Background(), a.timeout())
-		ref, err := a.Core.Policy().Create(ctx, &api.MediaGrant{ID: sid, UE: ueKey(req), Raw: req})
+		ref, err := a.grant(ctx, sid, &api.MediaGrant{ID: sid, UE: ueKey(req), Raw: req})
 		cancel()
 		if err != nil {
 			uilog.Event(uilog.Red, "CALL-FAIL", "ue %s  dedicated bearer NOT installed: %v", ueKey(req).IPv4, err)
@@ -96,6 +96,30 @@ func (a *Adapter) Handle(_ *dpeer.Conn, req diameter.Message) (diameter.Message,
 	avps = append(avps, result...)
 	ans.AVPs = avps
 	return ans, nil
+}
+
+// grant installs the media of an AAR. A first AAR for an Rx session creates its policy; a later one for the same
+// session (the call answered, re-negotiated) updates that policy (TS 29.214 4.4.2) — a second policy beside the first
+// tore the voice bearer down and leaked into the next call. A core that cannot update has the old policy released
+// first and a new one created, so nothing is left behind.
+func (a *Adapter) grant(ctx context.Context, sid string, g *api.MediaGrant) (api.CoreRef, error) {
+	old, ok := a.Grants.Lookup(sid)
+	if !ok {
+		return a.Core.Policy().Create(ctx, g)
+	}
+	err := a.Core.Policy().Update(ctx, old, g)
+	if err == nil {
+		return old, nil
+	}
+	if !errors.Is(err, api.ErrUnsupported) && !errors.Is(err, api.ErrNoSession) {
+		return "", err
+	}
+	if _, held := a.Grants.Take(sid); held {
+		if derr := a.Core.Policy().Delete(ctx, old); derr != nil {
+			uilog.Event(uilog.Orange, "END-WARN", "sess %s  old grant not released before re-creating: %v", uilog.Short(old), derr)
+		}
+	}
+	return a.Core.Policy().Create(ctx, g)
 }
 
 // strictAnswer maps connector errors onto TS 29.214 result codes.
