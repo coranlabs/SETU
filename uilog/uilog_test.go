@@ -21,9 +21,9 @@ func capture(t *testing.T, f func()) string {
 
 func TestEventLine(t *testing.T) {
 	out := capture(t, func() {
-		Event(Green, "🎧", "AUDIO", "ue %s  sess %s", "198.51.100.89", "imsi-1-24")
+		Event(Green, "AUDIO", "ue %s  sess %s", "198.51.100.89", "imsi-1-24")
 	})
-	for _, want := range []string{"🎧", "AUDIO", "198.51.100.89", "imsi-1-24", Green, reset} {
+	for _, want := range []string{"AUDIO", "198.51.100.89", "imsi-1-24", Green, reset} {
 		if !strings.Contains(out, want) {
 			t.Errorf("line missing %q\ngot: %q", want, out)
 		}
