@@ -32,6 +32,9 @@ type Adapter struct {
 	PLMN        ident.PLMN
 	Core        api.CoreConnector
 	Timeout     time.Duration
+	// AppServers are the iFC rules every user's profile carries (setu.json cx.appServers): which requests the
+	// S-CSCF sends to which application server, e.g. TossiCore MCX
+	AppServers []imssub.AppServerTrigger
 
 	Metrics                *metrics.Registry
 	mSAR, mUAR, mLIR, mErr *metrics.Counter
@@ -85,7 +88,7 @@ func (a *Adapter) handleUAR(req diameter.Message) (diameter.Message, error) {
 	if !exists {
 		return a.answerErr(req, diameter.AuthenticationRejected), nil
 	}
-	uilog.Event(uilog.Magenta, "🔐", "REGISTER", "imsi %s  UAR ✓ S-CSCF assigned", imsi)
+	uilog.Event(uilog.Magenta, "REGISTER", "imsi %s  UAR ✓ S-CSCF assigned", uilog.Mask(imsi))
 	ans := a.answerBase(req)
 	ans.AVPs = append(ans.AVPs,
 		diameter.ResultCode(diameter.Success),
@@ -95,7 +98,7 @@ func (a *Adapter) handleUAR(req diameter.Message) (diameter.Message, error) {
 }
 
 func (a *Adapter) handleLIR(req diameter.Message) (diameter.Message, error) {
-	uilog.Event(uilog.Blue, "🧭", "LOCATE", "LIR ✓ terminating S-CSCF returned")
+	uilog.Event(uilog.Blue, "LOCATE", "LIR ✓ terminating S-CSCF returned")
 	ans := a.answerBase(req)
 	ans.AVPs = append(ans.AVPs,
 		diameter.ResultCode(diameter.Success),
@@ -115,11 +118,11 @@ func (a *Adapter) handleSAR(req diameter.Message) (diameter.Message, error) {
 	if err != nil {
 		return a.answerErr(req, diameter.UnableToComply), nil
 	}
-	xmlDoc, err := imssub.Build(imssub.Subscriber{IMSI: imsi, MSISDN: msisdn, PLMN: a.PLMN})
+	xmlDoc, err := imssub.Build(imssub.Subscriber{IMSI: imsi, MSISDN: msisdn, PLMN: a.PLMN, AppServers: a.AppServers})
 	if err != nil {
 		return a.answerErr(req, diameter.UnableToComply), nil
 	}
-	uilog.Event(uilog.Magenta, "📇", "REGISTER", "imsi %s  SAR ✓ profile+iFC stored  · msisdn %s", imsi, msisdn)
+	uilog.Event(uilog.Magenta, "REGISTER", "imsi %s  SAR ✓ profile+iFC stored  · msisdn %s", uilog.Mask(imsi), uilog.Mask(msisdn))
 	impi, _ := a.PLMN.IMPI(imsi)
 	ans := a.answerBase(req)
 	ans.AVPs = append(ans.AVPs,
@@ -144,7 +147,7 @@ func (a *Adapter) handleMAR(req diameter.Message) (diameter.Message, error) {
 		return a.answerErr(req, diameter.AuthenticationRejected), nil
 	}
 	q := vecs[0]
-	uilog.Event(uilog.Magenta, "🔑", "AUTH", "imsi %s  MAR ✓ AKA vector issued (AKAv1-MD5)", imsi)
+	uilog.Event(uilog.Magenta, "AUTH", "imsi %s  MAR ✓ AKA vector issued (AKAv1-MD5)", uilog.Mask(imsi))
 	impi, _ := a.PLMN.IMPI(imsi)
 	sipAuthenticate := append(append([]byte{}, q.RAND...), q.AUTN...) // RAND(16)||AUTN(16)
 

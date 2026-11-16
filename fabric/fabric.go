@@ -110,6 +110,15 @@ func (g *Grants) Bind(sid string, ref api.CoreRef) error {
 	return nil
 }
 
+// Lookup returns the ref bound to sid and leaves it bound: an AAR for an Rx session already granted is an update of
+// that grant, not a new one.
+func (g *Grants) Lookup(sid string) (api.CoreRef, bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	ref, ok := g.mem[sid]
+	return ref, ok
+}
+
 // Take removes and returns the ref for sid.
 func (g *Grants) Take(sid string) (api.CoreRef, bool) {
 	g.mu.Lock()

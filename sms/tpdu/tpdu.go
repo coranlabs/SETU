@@ -1,11 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Coran Labs Private Limited
 // SPDX-License-Identifier: Apache-2.0
 
-// Package tpdu encodes and decodes short messages per 3GPP TS 23.040 (TPDU) and
-// TS 24.011 (RP layer): SMS-SUBMIT in, SMS-DELIVER out, GSM 7-bit or UCS-2.
+// Package tpdu is the 3GPP TS 23.040/24.011 short-message codec, re-homed verbatim
+// from the e2e-proven sms-router (SMS "Hello" + RP-ACK proven live 2026-08-13).
+// Two deliberate changes from the original:
+//   - TP-SCTS is computed from an injected clock instead of the hardcoded
+//     2025-08-06 bytes (52 80 60 00 00 00 00). Freeze the clock to that instant to
+//     reproduce the historical bytes exactly (see tests).
+//   - everything the adapter needs is exported.
 package tpdu
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -105,6 +111,40 @@ func EncodeBCDAddr(digits string) []byte {
 	return out
 }
 
+// RP message types (TS 24.011 8.2.2): the MTI in bits 3-1 of the first RP octet. ms->n and n->ms differ, so an RP-ACK
+// from the phone (2) and one to the phone (3) are told apart by the number alone.
+const (
+	RPDataMS  = 0 // RP-DATA, phone to network
+	RPDataN   = 1 // RP-DATA, network to phone
+	RPAckMS   = 2
+	RPAckN    = 3
+	RPErrorMS = 4
+	RPErrorN  = 5
+	RPSMMA    = 6 // the phone has memory for messages again
+)
+
+// RP-Cause values setu sends (TS 24.011 8.2.5.4, Table 8.4).
+const (
+	RPCauseRejected          = 21 // short message transfer rejected: the recipient refused it
+	RPCauseDestOutOfOrder    = 27 // destination out of order: no domain reached the recipient
+	RPCauseNetworkOutOfOrder = 38 // network out of order: the core failed, or the sender has no number
+	RPCauseTemporaryFailure  = 41 // temporary failure: the delivery deadline ran out
+	RPCauseSemanticallyWrong = 95
+	RPCauseInvalidMandatory  = 96 // invalid mandatory information
+	RPCauseUnknownType       = 97 // message type non-existent or not implemented
+)
+
+// ErrNotRPData is DecodeMO's answer for an RP message that is not a phone-to-network RP-DATA.
+var ErrNotRPData = errors.New("tpdu: not an ms->n RP-DATA")
+
+// RPType returns the RP message type (one of the RP* constants) of an RP message.
+func RPType(rp []byte) (byte, error) {
+	if len(rp) == 0 {
+		return 0, fmt.Errorf("tpdu: empty RP message")
+	}
+	return rp[0] & 0x07, nil
+}
+
 // MO is a decoded mobile-originated short message.
 type MO struct {
 	Recipient string
@@ -117,6 +157,9 @@ type MO struct {
 func DecodeMO(rp []byte) (*MO, error) {
 	if len(rp) < 3 {
 		return nil, fmt.Errorf("rp too short")
+	}
+	if rp[0]&0x07 != RPDataMS {
+		return nil, ErrNotRPData
 	}
 	rpRef := rp[1]
 	p := 2
@@ -133,9 +176,6 @@ func DecodeMO(rp []byte) (*MO, error) {
 	}
 	udLen := int(rp[p])
 	p++
-	if udLen == 0 {
-		return nil, fmt.Errorf("rp-ud empty")
-	}
 	if p+udLen > len(rp) {
 		udLen = len(rp) - p
 	}
@@ -146,81 +186,75 @@ func DecodeMO(rp []byte) (*MO, error) {
 	return mo, err
 }
 
+// decodeSubmit parses an SMS-SUBMIT (TS 23.040 9.2.2.2). Every field is checked against what is left, so a cut or
+// lying message is an error, not a panic.
 func decodeSubmit(t []byte) (*MO, error) {
-	// Every read is bounds-checked: these bytes arrive from the network.
-	at := func(i int) (byte, error) {
-		if i < 0 || i >= len(t) {
-			return 0, fmt.Errorf("tpdu truncated at octet %d of %d", i, len(t))
-		}
-		return t[i], nil
+	if len(t) < 3 {
+		return nil, fmt.Errorf("tpdu short")
 	}
-	flags, err := at(0)
-	if err != nil {
-		return nil, err
-	}
-	if mti := flags & 0x03; mti != 0x01 {
-		return nil, fmt.Errorf("tpdu is not an SMS-SUBMIT (MTI %d)", mti)
-	}
+	short := func(field string) error { return fmt.Errorf("tpdu: cut in %s", field) }
+	i := 0
+	flags := t[i]
+	i++
 	udhi := flags&0x40 != 0
 	vpf := (flags >> 3) & 0x03
-
-	i := 2 // skip TP-MR
-	daDigits, err := at(i)
-	if err != nil {
-		return nil, err
-	}
-	i += 2 // address length + type-of-address
-	daBytes := (int(daDigits) + 1) / 2
+	i++ // TP-MR
+	daDigits := int(t[i])
+	i += 2 // len + TOA
+	daBytes := (daDigits + 1) / 2
 	if i+daBytes > len(t) {
-		return nil, fmt.Errorf("tpdu truncated in TP-DA")
+		return nil, short("TP-DA")
 	}
-	recipient := DecodeBCDAddr(t[i:i+daBytes], int(daDigits))
+	recipient := DecodeBCDAddr(t[i:i+daBytes], daDigits)
 	i += daBytes
-
 	i++ // TP-PID
-	dcs, err := at(i)
-	if err != nil {
-		return nil, err
+	if i >= len(t) {
+		return nil, short("TP-PID/TP-DCS")
 	}
+	dcs := t[i]
 	i++
 	switch vpf {
 	case 0x02:
-		i++ // relative
+		i++
 	case 0x01, 0x03:
-		i += 7 // enhanced or absolute
+		i += 7
 	}
-	udlByte, err := at(i)
-	if err != nil {
-		return nil, err
+	if i >= len(t) {
+		return nil, short("TP-VP/TP-UDL")
 	}
-	udl := int(udlByte)
+	udl := int(t[i])
 	i++
 	ud := t[i:]
-
+	// UCS-2 and 8-bit data count octets, GSM 7-bit counts septets (TS 23.038 4)
+	need := (udl*7 + 7) / 8
+	if dcs&0x0c == 0x08 || dcs&0x0c == 0x04 {
+		need = udl
+	}
+	if len(ud) < need {
+		return nil, short("TP-UD")
+	}
+	ud = ud[:need]
 	udh := 0
-	if udhi {
-		if len(ud) == 0 {
-			return nil, fmt.Errorf("tpdu declares a header but carries no user data")
-		}
+	if udhi && len(ud) > 0 {
 		udh = int(ud[0]) + 1
 		if udh > len(ud) {
-			return nil, fmt.Errorf("tpdu user-data header overruns the user data")
+			return nil, short("TP-UDH")
 		}
 	}
-
 	var text string
 	switch dcs & 0x0c {
 	case 0x08:
 		text = DecodeUCS2(ud[udh:])
 	default:
-		n := udl
-		if udh > 0 {
-			n = udl - (udh*8+6)/7
+		// GSM 7-bit: UDL counts septets from the start of the user data, the header and its fill bits included, and
+		// the text starts on the first septet boundary after the header (TS 23.040 9.2.3.24). Reading it from the
+		// octet after the header ignores the fill bits and garbles every character of a concatenated SMS.
+		all := []rune(GSM7Unpack(ud, udl)) // one rune per septet
+		skip := (udh*8 + 6) / 7
+		if skip > len(all) {
+			return nil, short("TP-UDH")
 		}
-		if n < 0 {
-			n = 0
-		}
-		text = GSM7Unpack(ud[udh:], n)
+		text = string(all[skip:])
 	}
 	return &MO{Recipient: recipient, DCS: dcs, Text: text}, nil
 }
@@ -254,7 +288,8 @@ func UCS2Encode(s string) []byte {
 	return out
 }
 
-// encodeSCTS renders TP-SCTS: 7 swapped-nibble BCD octets, timezone fixed at UTC.
+// encodeSCTS renders TP-SCTS as 7 swapped-nibble BCD octets (yy MM dd hh mm ss tz).
+// The timezone octet is 0x00, matching the proven deployment.
 func encodeSCTS(t time.Time) []byte {
 	t = t.UTC() // the tz octet below is 0 (UTC); the fields must match it
 	swap := func(v int) byte { return byte((v%10)<<4 | (v/10)%10) }
@@ -264,9 +299,17 @@ func encodeSCTS(t time.Time) []byte {
 	}
 }
 
-// EncodeDeliver builds an n->ms RP-DATA carrying an SMS-DELIVER, GSM 7-bit when
-// the text allows it and UCS-2 otherwise.
+// EncodeDeliver builds an n->ms RP-DATA carrying an SMS-DELIVER from sender to the
+// UE, GSM-7 when possible, UCS-2 otherwise. scts stamps TP-SCTS; use a frozen clock
+// in tests to reproduce historical bytes. It is EncodeDeliverWith with the proven
+// system's SMSC "7" and RP-MR 0.
 func EncodeDeliver(sender, text string, scts time.Time) []byte {
+	return EncodeDeliverWith(sender, text, scts, "7", 0)
+}
+
+// EncodeDeliverWith is EncodeDeliver with the SMSC address carried in RP-OA and the RP-Message-Reference set by the
+// caller, so a delivery report can be matched to the message it answers.
+func EncodeDeliverWith(sender, text string, scts time.Time, smsc string, ref byte) []byte {
 	var t []byte
 	t = append(t, 0x04) // SMS-DELIVER, no more messages
 	t = append(t, byte(len(sender)), 0x91)
@@ -286,13 +329,42 @@ func EncodeDeliver(sender, text string, scts time.Time) []byte {
 		t = append(t, ucs...)
 	}
 	var rp []byte
-	rp = append(rp, 0x01, 0x00)       // RP-DATA n->ms, ref 0
-	rp = append(rp, 0x02, 0x91, 0xf7) // RP-OA: SMSC address
-	rp = append(rp, 0x00)             // RP-DA: empty
+	rp = append(rp, RPDataN, ref) // RP-DATA n->ms
+	// RP-OA: the SMSC, international (TS 24.011 8.2.5.1); "7" gives 02 91 f7, the proven system's bytes
+	if sc := EncodeBCDAddr(strings.TrimPrefix(smsc, "+")); len(sc) > 0 {
+		rp = append(rp, byte(1+len(sc)), 0x91)
+		rp = append(rp, sc...)
+	} else {
+		rp = append(rp, 0x00)
+	}
+	rp = append(rp, 0x00) // RP-DA: empty
 	rp = append(rp, byte(len(t)))
 	rp = append(rp, t...)
 	return rp
 }
 
-// BuildRPAck builds an n->ms RP-ACK echoing the originating reference.
+// BuildRPAck builds the n->ms RP-ACK (submit report) echoing the MO reference.
 func BuildRPAck(ref byte) []byte { return []byte{0x03, ref} }
+
+// BuildRPError builds the n->ms RP-ERROR echoing the MO reference, with a one-octet RP-Cause and no diagnostic.
+func BuildRPError(ref, cause byte) []byte { return []byte{RPErrorN, ref, 0x01, cause & 0x7f} }
+
+// DecodeRPReport reads the phone's answer to an MT RP-DATA: an ms->n RP-ACK (ok, with or without the optional
+// RP-User data) or an ms->n RP-ERROR (not ok, with its RP-Cause).
+func DecodeRPReport(rp []byte) (ok bool, ref, cause byte, err error) {
+	if len(rp) < 2 {
+		return false, 0, 0, fmt.Errorf("tpdu: RP report too short")
+	}
+	switch rp[0] & 0x07 {
+	case RPAckMS:
+		// the optional RP-User data (IEI 0x41) only carries a DELIVER-REPORT; the ACK itself is the answer
+		return true, rp[1], 0, nil
+	case RPErrorMS:
+		if len(rp) < 4 || rp[2] < 1 || int(rp[2]) > len(rp)-3 {
+			return false, rp[1], 0, fmt.Errorf("tpdu: RP-ERROR without a whole RP-Cause")
+		}
+		return false, rp[1], rp[3] & 0x7f, nil
+	default:
+		return false, rp[1], 0, fmt.Errorf("tpdu: RP type %d is not an ms->n RP-ACK or RP-ERROR", rp[0]&0x07)
+	}
+}
