@@ -22,10 +22,13 @@ type IMSSubscription struct {
 }
 
 // ServiceProfile groups public identities, iFC and CN service authorization.
+// The field order is the element order, and the S-CSCF checks it against CxDataType_Rel7.xsd (TS 29.228 Annex E):
+// PublicIdentity, then CoreNetworkServicesAuthorization, then InitialFilterCriteria. Out of order, the S-CSCF
+// refuses the whole profile and the user cannot register.
 type ServiceProfile struct {
 	PublicIdentities                 []PublicIdentity        `xml:"PublicIdentity"`
-	InitialFilterCriteria            []InitialFilterCriteria `xml:"InitialFilterCriteria,omitempty"`
 	CoreNetworkServicesAuthorization *CNServicesAuth         `xml:"CoreNetworkServicesAuthorization,omitempty"`
+	InitialFilterCriteria            []InitialFilterCriteria `xml:"InitialFilterCriteria,omitempty"`
 }
 
 // PublicIdentity is one IMPU. BarringIndication=1 marks it usable for registration
@@ -48,12 +51,20 @@ type TriggerPoint struct {
 	SPTs             []SPT `xml:"SPT"`
 }
 
+// Header for our SIP(have to make a new type for it otherwise bug was coming in SPT struct)
+type Header struct {
+	Header  string `xml:"Header"`
+	Content string `xml:"Content,omitempty"`
+}
+
 // SPT is a Service Point Trigger.
 type SPT struct {
-	ConditionNegated int    `xml:"ConditionNegated"`
-	Group            int    `xml:"Group"`
-	Method           string `xml:"Method,omitempty"`
-	SIPHeader        string `xml:"SIPHeader>Header,omitempty"`
+	ConditionNegated int     `xml:"ConditionNegated"`
+	Group            int     `xml:"Group"`
+	RequestURI       string  `xml:"RequestURI,omitempty"`
+	Method           string  `xml:"Method,omitempty"`
+	SIPHeader        *Header `xml:"SIPHeader,omitempty"`
+	SessionCase      *int    `xml:"SessionCase,omitempty"` // The four values: 0 originating, 1 terminating registered, 2 terminating unregistered, 3 originating unregistered
 }
 
 // ApplicationServer names the AS and its default handling.
@@ -73,6 +84,8 @@ type AppServerTrigger struct {
 	Method          string // e.g. "INVITE"; empty => no trigger point (unconditional)
 	DefaultHandling int    // 0 continued, 1 terminated
 	Priority        int
+	RequestURI      string // The address pattern
+	SessionCase     *int   // The direction
 }
 
 // Subscriber describes who the profile is for.
@@ -114,10 +127,20 @@ func Build(s Subscriber) ([]byte, error) {
 			Priority:          as.Priority,
 			ApplicationServer: ApplicationServer{ServerName: as.ServerName, DefaultHandling: as.DefaultHandling},
 		}
+		spts := []SPT{}
 		if as.Method != "" {
+			spts = append(spts, SPT{Group: 0, Method: as.Method})
+		}
+		if as.RequestURI != "" {
+			spts = append(spts, SPT{Group: 0, RequestURI: as.RequestURI})
+		}
+		if as.SessionCase != nil {
+			spts = append(spts, SPT{Group: 0, SessionCase: as.SessionCase})
+		}
+		if len(spts) > 0 {
 			ifc.TriggerPoint = &TriggerPoint{
 				ConditionTypeCNF: 0,
-				SPTs:             []SPT{{ConditionNegated: 0, Group: 0, Method: as.Method}},
+				SPTs:             spts,
 			}
 		}
 		sp.InitialFilterCriteria = append(sp.InitialFilterCriteria, ifc)

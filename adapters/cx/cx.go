@@ -32,6 +32,9 @@ type Adapter struct {
 	PLMN        ident.PLMN
 	Core        api.CoreConnector
 	Timeout     time.Duration
+	// AppServers are the iFC rules every user's profile carries (setu.json cx.appServers): which requests the
+	// S-CSCF sends to which application server, e.g. TossiCore MCX
+	AppServers []imssub.AppServerTrigger
 
 	Metrics                *metrics.Registry
 	mSAR, mUAR, mLIR, mErr *metrics.Counter
@@ -115,7 +118,7 @@ func (a *Adapter) handleSAR(req diameter.Message) (diameter.Message, error) {
 	if err != nil {
 		return a.answerErr(req, diameter.UnableToComply), nil
 	}
-	xmlDoc, err := imssub.Build(imssub.Subscriber{IMSI: imsi, MSISDN: msisdn, PLMN: a.PLMN})
+	xmlDoc, err := imssub.Build(imssub.Subscriber{IMSI: imsi, MSISDN: msisdn, PLMN: a.PLMN, AppServers: a.AppServers})
 	if err != nil {
 		return a.answerErr(req, diameter.UnableToComply), nil
 	}
